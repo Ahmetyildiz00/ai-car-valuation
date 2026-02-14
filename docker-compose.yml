@@ -1,16 +1,27 @@
 services:
   db:
     image: postgres:16-alpine
+    command: -p 5434
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: car_valuation
     ports:
-      - "5432:5432"
+      - "5434:5434"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -p 5434"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -20,13 +31,43 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/car_valuation
+      DATABASE_URL: postgresql://postgres:postgres@db:5434/car_valuation
+      REDIS_URL: redis://redis:6379/0
       SECRET_KEY: ${SECRET_KEY:-super-secret-change-me}
       REFRESH_SECRET_KEY: ${REFRESH_SECRET_KEY:-refresh-secret-change-me}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       CORS_ORIGINS: http://localhost:5173,http://localhost:80,http://localhost
     depends_on:
       db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+
+  taskiq-worker:
+    build: ./backend
+    command: taskiq worker app.core.broker:broker app.tasks.scraper_tasks
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5434/car_valuation
+      REDIS_URL: redis://redis:6379/0
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+
+  taskiq-scheduler:
+    build: ./backend
+    command: taskiq scheduler app.tasks.scheduler:scheduler
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5434/car_valuation
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
         condition: service_healthy
     volumes:
       - ./backend:/app
