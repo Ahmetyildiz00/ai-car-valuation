@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { Car, Mail, Lock, User } from "lucide-react";
+import { Mail, Lock, User } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import carvalIcon from "../assets/carval-icon.png";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -16,20 +17,20 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
+      toast.error("Şifreler eşleşmiyor");
       return;
     }
     if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+      toast.error("Şifre en az 6 karakter olmalı");
       return;
     }
     setLoading(true);
     try {
       await register(email, username, password);
-      toast.success("Account created! Please sign in.");
+      toast.success("Hesap oluşturuldu! Giriş yapın.");
       navigate("/login");
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Registration failed");
+      toast.error(err.response?.data?.detail || "Kayıt başarısız");
     } finally {
       setLoading(false);
     }
@@ -39,9 +40,11 @@ export default function Register() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-header">
-          <Car size={40} className="auth-icon" />
-          <h1>Carval.ai</h1>
-          <p>Create your account</p>
+          <Link to="/" className="auth-brand">
+            <img src={carvalIcon} alt="Carval.ai" className="auth-brand-icon" />
+            <span>Carval<span className="brand-ai">.ai</span></span>
+          </Link>
+          <p>Ücretsiz hesap oluşturun</p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
@@ -49,7 +52,7 @@ export default function Register() {
             <User size={18} />
             <input
               type="text"
-              placeholder="Username"
+              placeholder="Kullanıcı adı"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -60,7 +63,7 @@ export default function Register() {
             <Mail size={18} />
             <input
               type="email"
-              placeholder="Email"
+              placeholder="E-posta"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -71,7 +74,7 @@ export default function Register() {
             <Lock size={18} />
             <input
               type="password"
-              placeholder="Password"
+              placeholder="Şifre"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -82,7 +85,7 @@ export default function Register() {
             <Lock size={18} />
             <input
               type="password"
-              placeholder="Confirm password"
+              placeholder="Şifreyi tekrar girin"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
@@ -90,12 +93,12 @@ export default function Register() {
           </div>
 
           <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? "Creating account..." : "Create Account"}
+            {loading ? "Hesap oluşturuluyor..." : "Üye Ol"}
           </button>
         </form>
 
         <p className="auth-footer">
-          Already have an account? <Link to="/login">Sign in</Link>
+          Zaten hesabınız var mı? <Link to="/login">Giriş Yap</Link>
         </p>
       </div>
     </div>

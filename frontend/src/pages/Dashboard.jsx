@@ -20,7 +20,7 @@ export default function Dashboard() {
       const res = await getValuations();
       setValuations(res.data.valuations);
     } catch {
-      toast.error("Failed to load valuations");
+      toast.error("Değerlemeler yüklenemedi");
     } finally {
       setLoading(false);
     }
@@ -31,18 +31,18 @@ export default function Dashboard() {
   }, []);
 
   const handleDelete = async (id) => {
-    if (!confirm("Delete this valuation?")) return;
+    if (!confirm("Bu değerleme silinsin mi?")) return;
     try {
       await deleteValuation(id);
       setValuations((prev) => prev.filter((v) => v.id !== id));
-      toast.success("Valuation deleted");
+      toast.success("Değerleme silindi");
     } catch {
-      toast.error("Failed to delete");
+      toast.error("Silinemedi");
     }
   };
 
   const formatPrice = (price) => {
-    if (!price) return "N/A";
+    if (!price) return "—";
     return new Intl.NumberFormat("tr-TR", {
       style: "currency",
       currency: "TRY",
@@ -62,22 +62,22 @@ export default function Dashboard() {
     <div className="dashboard">
       <div className="dashboard-header">
         <div>
-          <h1>Your Valuations</h1>
-          <p>{valuations.length} total valuation{valuations.length !== 1 ? "s" : ""}</p>
+          <h1>Değerlemelerim</h1>
+          <p>{valuations.length} değerleme</p>
         </div>
         <Link to="/valuation" className="btn-primary">
           <PlusCircle size={18} />
-          New Valuation
+          Yeni Değerleme
         </Link>
       </div>
 
       {valuations.length === 0 ? (
         <div className="empty-state">
           <TrendingUp size={64} />
-          <h2>No valuations yet</h2>
-          <p>Create your first car valuation to get started.</p>
+          <h2>Henüz değerleme yok</h2>
+          <p>İlk araç değerlemenizi oluşturmak için başlayın.</p>
           <Link to="/valuation" className="btn-primary">
-            Get Started
+            Başla
           </Link>
         </div>
       ) : (
@@ -91,7 +91,7 @@ export default function Dashboard() {
                 <button
                   onClick={() => handleDelete(v.id)}
                   className="btn-icon-danger"
-                  title="Delete"
+                  title="Sil"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -104,7 +104,7 @@ export default function Dashboard() {
                 </div>
                 <div className="detail-item">
                   <Gauge size={14} />
-                  <span>{v.mileage?.toLocaleString()} km</span>
+                  <span>{v.mileage?.toLocaleString("tr-TR")} km</span>
                 </div>
                 <div className="detail-item">
                   <Fuel size={14} />
@@ -114,23 +114,21 @@ export default function Dashboard() {
 
               {v.predicted_price ? (
                 <div className="valuation-card-price">
-                  <span className="price-label">Estimated Value</span>
-                  <span className="price-value">
-                    {formatPrice(v.predicted_price)}
-                  </span>
+                  <span className="price-label">Tahmini Değer</span>
+                  <span className="price-value">{formatPrice(v.predicted_price)}</span>
                   <span className="price-range">
                     {formatPrice(v.price_min)} — {formatPrice(v.price_max)}
                   </span>
                 </div>
               ) : (
                 <div className="valuation-card-price">
-                  <span className="price-label">Prediction unavailable</span>
+                  <span className="price-label">Tahmin mevcut değil</span>
                 </div>
               )}
 
               {v.condition_score && (
                 <div className="condition-bar">
-                  <span>Condition</span>
+                  <span>Durum</span>
                   <div className="bar-track">
                     <div
                       className="bar-fill"

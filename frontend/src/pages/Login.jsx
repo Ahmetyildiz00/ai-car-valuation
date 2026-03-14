@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { Car, Mail, Lock } from "lucide-react";
+import { Mail, Lock } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import carvalIcon from "../assets/carval-icon.png";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -16,10 +17,10 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email, password);
-      toast.success("Welcome back!");
+      toast.success("Hoş geldiniz!");
       navigate("/dashboard");
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Login failed");
+      toast.error(err.response?.data?.detail || "Giriş başarısız");
     } finally {
       setLoading(false);
     }
@@ -29,9 +30,11 @@ export default function Login() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-header">
-          <Car size={40} className="auth-icon" />
-          <h1>Carval.ai</h1>
-          <p>AI-Powered Car Valuation</p>
+          <Link to="/" className="auth-brand">
+            <img src={carvalIcon} alt="Carval.ai" className="auth-brand-icon" />
+            <span>Carval<span className="brand-ai">.ai</span></span>
+          </Link>
+          <p>Hesabınıza giriş yapın</p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
@@ -39,7 +42,7 @@ export default function Login() {
             <Mail size={18} />
             <input
               type="email"
-              placeholder="Email"
+              placeholder="E-posta"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -50,7 +53,7 @@ export default function Login() {
             <Lock size={18} />
             <input
               type="password"
-              placeholder="Password"
+              placeholder="Şifre"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -58,12 +61,12 @@ export default function Login() {
           </div>
 
           <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
           </button>
         </form>
 
         <p className="auth-footer">
-          Don't have an account? <Link to="/register">Sign up</Link>
+          Hesabınız yok mu? <Link to="/register">Üye Ol</Link>
         </p>
       </div>
     </div>

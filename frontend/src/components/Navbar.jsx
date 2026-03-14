@@ -1,6 +1,7 @@
-import { Car, LogOut, History, PlusCircle } from "lucide-react";
+import { LogOut, History, PlusCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import carvalIcon from "../assets/carval-icon.png";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -11,33 +12,42 @@ export default function Navbar() {
     navigate("/login");
   };
 
-  if (!user) return null;
-
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        <Link to="/dashboard" className="navbar-brand">
-          <Car size={28} />
-          <span>Carval.ai</span>
+        <Link to="/" className="navbar-brand">
+          <img src={carvalIcon} alt="Carval.ai" className="navbar-brand-icon" />
+          <span>Carval<span className="brand-ai">.ai</span></span>
         </Link>
 
-        <div className="navbar-links">
-          <Link to="/dashboard" className="nav-link">
-            <History size={18} />
-            <span>Dashboard</span>
-          </Link>
-          <Link to="/valuation" className="nav-link">
-            <PlusCircle size={18} />
-            <span>New Valuation</span>
-          </Link>
-        </div>
+        {user && (
+          <div className="navbar-links">
+            <Link to="/dashboard" className="nav-link">
+              <History size={18} />
+              <span>Geçmiş</span>
+            </Link>
+            <Link to="/valuation" className="nav-link">
+              <PlusCircle size={18} />
+              <span>Yeni Değerleme</span>
+            </Link>
+          </div>
+        )}
 
         <div className="navbar-right">
-          <span className="navbar-user">{user.username}</span>
-          <button onClick={handleLogout} className="btn-logout">
-            <LogOut size={18} />
-            <span>Logout</span>
-          </button>
+          {user ? (
+            <>
+              <span className="navbar-user">{user.username}</span>
+              <button onClick={handleLogout} className="btn-logout">
+                <LogOut size={18} />
+                <span>Çıkış</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="btn-ghost-sm">Giriş Yap</Link>
+              <Link to="/register" className="btn-solid-sm">Üye Ol</Link>
+            </>
+          )}
         </div>
       </div>
     </nav>

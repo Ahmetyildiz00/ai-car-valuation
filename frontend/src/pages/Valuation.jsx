@@ -1,45 +1,57 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import {
-  Car,
   Upload,
   Loader,
   TrendingUp,
   AlertTriangle,
   CheckCircle,
+  X,
+  Link2,
+  Info,
 } from "lucide-react";
-import { createValuation, createValuationWithImage } from "../api/valuation";
-
-const BRANDS = [
-  "BMW", "Mercedes", "Audi", "Volkswagen", "Toyota", "Honda", "Ford",
-  "Renault", "Fiat", "Hyundai", "Opel", "Peugeot", "Citroen", "Nissan",
-  "Kia", "Volvo", "Skoda", "Dacia",
-];
+import { createValuationWithImage } from "../api/valuation";
+import { useAuth } from "../context/AuthContext";
 
 const FUEL_TYPES = ["Benzin", "Dizel", "LPG", "Hibrit", "Elektrik"];
 const TRANSMISSIONS = ["Manuel", "Otomatik", "Yarı Otomatik"];
-const BODY_TYPES = ["Sedan", "Hatchback", "SUV", "Coupe", "Station Wagon", "MPV", "Cabrio", "Pickup"];
 
 export default function Valuation() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+  const fileInputRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
-  const [image, setImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [images, setImages] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [imageUrl, setImageUrl] = useState("");
+  const [dragOver, setDragOver] = useState(false);
 
   const [form, setForm] = useState({
-    brand: "",
-    model: "",
     year: new Date().getFullYear(),
-    mileage: 0,
+    mileage: "",
     fuel_type: "",
     transmission: "",
-    body_type: "",
-    color: "",
     engine_size: "",
     damage_records: "",
   });
+
+  // Pre-fill from landing page navigation state
+  useEffect(() => {
+    if (location.state?.files?.length > 0) {
+      const files = location.state.files.slice(0, 5);
+      setImages(files);
+      setImagePreviews(files.map((f) => URL.createObjectURL(f)));
+    }
+    if (location.state?.imageUrl) {
+      setImageUrl(location.state.imageUrl);
+    }
+    if (location.state?.form) {
+      setForm((prev) => ({ ...prev, ...location.state.form }));
+    }
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -49,19 +61,40 @@ export default function Valuation() {
     }));
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImage(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
+  const addFiles = (files) => {
+    const remaining = 5 - images.length;
+    if (remaining <= 0) return;
+    const valid = Array.from(files)
+      .filter((f) => f.type.startsWith("image/"))
+      .slice(0, remaining);
+    setImages((prev) => [...prev, ...valid]);
+    setImagePreviews((prev) => [
+      ...prev,
+      ...valid.map((f) => URL.createObjectURL(f)),
+    ]);
+  };
+
+  const removeImage = (idx) => {
+    setImages((prev) => prev.filter((_, i) => i !== idx));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    addFiles(e.dataTransfer.files);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.brand || !form.model || !form.fuel_type || !form.transmission) {
-      toast.error("Please fill in all required fields");
+    if (images.length === 0 && !imageUrl.trim()) {
+      toast.error("Lütfen en az bir araç görseli yükleyin veya URL girin");
+      return;
+    }
+
+    if (!form.fuel_type || !form.transmission) {
+      toast.error("Lütfen yakıt tipi ve vites seçin");
       return;
     }
 
@@ -69,29 +102,30 @@ export default function Valuation() {
     setResult(null);
 
     try {
-      let res;
-      if (image) {
-        const formData = new FormData();
-        Object.entries(form).forEach(([key, val]) => {
-          if (val !== "" && val !== null) formData.append(key, val);
-        });
-        formData.append("image", image);
-        res = await createValuationWithImage(formData);
-      } else {
-        res = await createValuation(form);
+      const formData = new FormData();
+      Object.entries(form).forEach(([key, val]) => {
+        if (val !== "" && val !== null && val !== 0) formData.append(key, val);
+      });
+
+      if (images.length > 0) {
+        images.forEach((img) => formData.append("images", img));
+      }
+      if (imageUrl.trim()) {
+        formData.append("image_url", imageUrl.trim());
       }
 
+      const res = await createValuationWithImage(formData);
       setResult(res.data);
-      toast.success("Valuation completed!");
+      toast.success("Değerleme tamamlandı!");
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Valuation failed");
+      toast.error(err.response?.data?.detail || "Değerleme başarısız oldu");
     } finally {
       setLoading(false);
     }
   };
 
   const formatPrice = (price) => {
-    if (!price) return "N/A";
+    if (!price) return "—";
     return new Intl.NumberFormat("tr-TR", {
       style: "currency",
       currency: "TRY",
@@ -99,163 +133,203 @@ export default function Valuation() {
     }).format(price);
   };
 
+  const resetForm = () => {
+    setResult(null);
+    setForm({
+      year: new Date().getFullYear(),
+      mileage: "",
+      fuel_type: "",
+      transmission: "",
+      engine_size: "",
+      damage_records: "",
+    });
+    setImages([]);
+    setImagePreviews([]);
+    setImageUrl("");
+  };
+
   return (
     <div className="valuation-page">
       <div className="valuation-form-container">
         <div className="form-header">
-          <Car size={28} />
-          <h1>New Car Valuation</h1>
-          <p>Enter your car details for an AI-powered price estimate</p>
+          <h1>Araç Değerleme</h1>
+          <p>
+            Fotoğraf yükleyin, yapay zeka marka ve model gibi bilgileri otomatik
+            algılar. Siz sadece km ve yakıt tipi gibi ek bilgileri girin.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="valuation-form">
-          <div className="form-grid">
-            <div className="form-group">
-              <label>Brand *</label>
-              <select name="brand" value={form.brand} onChange={handleChange} required>
-                <option value="">Select brand</option>
-                {BRANDS.map((b) => (
-                  <option key={b} value={b}>{b}</option>
-                ))}
-              </select>
+          {/* Image upload — required */}
+          <div className="form-section">
+            <div className="form-section-label">
+              Araç Görseli <span className="required-star">*</span>
+              <span className="section-hint">
+                (en fazla 5 görsel · <Info size={13} className="inline-icon" /> Net ve iyi aydınlatılmış fotoğraflar daha iyi sonuç verir)
+              </span>
             </div>
 
-            <div className="form-group">
-              <label>Model *</label>
-              <input
-                type="text"
-                name="model"
-                value={form.model}
-                onChange={handleChange}
-                placeholder="e.g. 320i, Corolla, Focus"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Year *</label>
-              <input
-                type="number"
-                name="year"
-                value={form.year}
-                onChange={handleChange}
-                min={1990}
-                max={new Date().getFullYear()}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Mileage (km) *</label>
-              <input
-                type="number"
-                name="mileage"
-                value={form.mileage}
-                onChange={handleChange}
-                min={0}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Fuel Type *</label>
-              <select name="fuel_type" value={form.fuel_type} onChange={handleChange} required>
-                <option value="">Select fuel type</option>
-                {FUEL_TYPES.map((f) => (
-                  <option key={f} value={f}>{f}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Transmission *</label>
-              <select name="transmission" value={form.transmission} onChange={handleChange} required>
-                <option value="">Select transmission</option>
-                {TRANSMISSIONS.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Body Type</label>
-              <select name="body_type" value={form.body_type} onChange={handleChange}>
-                <option value="">Select body type</option>
-                {BODY_TYPES.map((b) => (
-                  <option key={b} value={b}>{b}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Color</label>
-              <input
-                type="text"
-                name="color"
-                value={form.color}
-                onChange={handleChange}
-                placeholder="e.g. Beyaz, Siyah"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Engine Size</label>
-              <input
-                type="text"
-                name="engine_size"
-                value={form.engine_size}
-                onChange={handleChange}
-                placeholder="e.g. 1.6, 2.0"
-              />
-            </div>
-          </div>
-
-          <div className="form-group full-width">
-            <label>Damage Records</label>
-            <textarea
-              name="damage_records"
-              value={form.damage_records}
-              onChange={handleChange}
-              placeholder="Describe any damage history, paint jobs, accidents..."
-              rows={3}
-            />
-          </div>
-
-          <div className="form-group full-width">
-            <label>Car Image (optional)</label>
-            <div className="image-upload">
+            <div
+              className={`drop-zone-form ${dragOver ? "drag-over" : ""} ${images.length > 0 ? "has-images" : ""}`}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              onClick={() => images.length === 0 && fileInputRef.current?.click()}
+            >
               <input
                 type="file"
+                ref={fileInputRef}
                 accept="image/*"
-                onChange={handleImageChange}
-                id="car-image"
+                multiple
+                onChange={(e) => addFiles(e.target.files)}
+                style={{ display: "none" }}
               />
-              <label htmlFor="car-image" className="upload-label">
-                {imagePreview ? (
-                  <img src={imagePreview} alt="Preview" className="image-preview" />
-                ) : (
-                  <>
-                    <Upload size={32} />
-                    <span>Click to upload a car image</span>
-                    <span className="upload-hint">
-                      The AI will analyze exterior condition, paint quality, and damages
+
+              {images.length === 0 ? (
+                <div className="drop-zone-empty">
+                  <Upload size={28} />
+                  <p>
+                    Görselleri sürükleyin veya{" "}
+                    <span className="drop-zone-link" onClick={() => fileInputRef.current?.click()}>
+                      seçin
                     </span>
-                  </>
-                )}
-              </label>
+                  </p>
+                  <span className="drop-zone-hint">Ekran görüntüsü kaliteyi düşürebilir</span>
+                </div>
+              ) : (
+                <div className="preview-grid-form">
+                  {imagePreviews.map((src, i) => (
+                    <div key={i} className="preview-item-form">
+                      <img src={src} alt={`Görsel ${i + 1}`} />
+                      <button
+                        type="button"
+                        className="preview-remove-form"
+                        onClick={(e) => { e.stopPropagation(); removeImage(i); }}
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  {images.length < 5 && (
+                    <div
+                      className="preview-add-form"
+                      onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                    >
+                      <Upload size={18} />
+                      <span>Ekle</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
+            {/* URL input */}
+            <div className="url-or-divider"><span>VEYA URL</span></div>
+            <div className="url-input-wrap-form">
+              <Link2 size={15} className="url-icon" />
+              <input
+                type="url"
+                placeholder="Görsel bağlantısı yapıştırın"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                className="url-input-form"
+              />
+            </div>
+          </div>
+
+          {/* Car details */}
+          <div className="form-section">
+            <div className="form-section-label">Araç Bilgileri</div>
+            <div className="form-grid">
+              <div className="form-group">
+                <label>Yıl <span className="required-star">*</span></label>
+                <input
+                  type="number"
+                  name="year"
+                  value={form.year}
+                  onChange={handleChange}
+                  min={1990}
+                  max={new Date().getFullYear()}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Kilometre (km) <span className="required-star">*</span></label>
+                <input
+                  type="number"
+                  name="mileage"
+                  value={form.mileage}
+                  onChange={handleChange}
+                  placeholder="örn. 85000"
+                  min={0}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Yakıt Tipi <span className="required-star">*</span></label>
+                <select name="fuel_type" value={form.fuel_type} onChange={handleChange} required>
+                  <option value="">Seçin</option>
+                  {FUEL_TYPES.map((f) => (
+                    <option key={f} value={f}>{f}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Vites <span className="required-star">*</span></label>
+                <select name="transmission" value={form.transmission} onChange={handleChange} required>
+                  <option value="">Seçin</option>
+                  {TRANSMISSIONS.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Motor Hacmi</label>
+                <input
+                  type="text"
+                  name="engine_size"
+                  value={form.engine_size}
+                  onChange={handleChange}
+                  placeholder="örn. 1.6, 2.0"
+                />
+              </div>
+
+            </div>
+
+            <div className="form-group" style={{ marginTop: "0.75rem" }}>
+              <label>Hasar / Değişen &amp; Boyalı Parçalar</label>
+              <textarea
+                name="damage_records"
+                value={form.damage_records}
+                onChange={handleChange}
+                placeholder="örn. Ön tampon boyalı, sol ön kapı değişen, tavan hasarlı..."
+                rows={2}
+              />
+            </div>
+          </div>
+
+          {/* Info box */}
+          <div className="info-box">
+            <Info size={16} />
+            <p>
+              Marka, model, renk ve kasa tipi görsellerden yapay zeka tarafından otomatik tespit edilir. Kilometre, yakıt tipi, vites ve motor hacmi gibi bilgiler görselden okunamayacağı için sizden istenmektedir.
+            </p>
           </div>
 
           <button type="submit" className="btn-primary btn-large" disabled={loading}>
             {loading ? (
               <>
                 <Loader size={20} className="spin" />
-                Analyzing with AI...
+                Yapay Zeka Analiz Ediyor...
               </>
             ) : (
               <>
                 <TrendingUp size={20} />
-                Get Valuation
+                Değerlemeyi Başlat
               </>
             )}
           </button>
@@ -267,34 +341,34 @@ export default function Valuation() {
           <div className="result-card">
             <div className="result-header">
               <CheckCircle size={28} className="success-icon" />
-              <h2>Valuation Result</h2>
+              <h2>Değerleme Sonucu</h2>
             </div>
 
             <div className="result-car-info">
               <h3>
                 {result.brand} {result.model} ({result.year})
               </h3>
-              <p>{result.mileage?.toLocaleString()} km | {result.fuel_type} | {result.transmission}</p>
+              <p>
+                {result.mileage?.toLocaleString("tr-TR")} km &middot; {result.fuel_type} &middot; {result.transmission}
+              </p>
             </div>
 
             <div className="result-price">
               <div className="price-main">
-                <span className="price-label">Estimated Value</span>
-                <span className="price-amount">
-                  {formatPrice(result.predicted_price)}
-                </span>
+                <span className="price-label">Tahmini Piyasa Değeri</span>
+                <span className="price-amount">{formatPrice(result.predicted_price)}</span>
               </div>
               <div className="price-range-display">
                 <div className="range-item">
-                  <span>Min</span>
+                  <span>Minimum</span>
                   <span>{formatPrice(result.price_min)}</span>
                 </div>
                 <div className="range-item">
-                  <span>Max</span>
+                  <span>Maksimum</span>
                   <span>{formatPrice(result.price_max)}</span>
                 </div>
                 <div className="range-item">
-                  <span>Condition</span>
+                  <span>Durum Skoru</span>
                   <span>{result.condition_score}/10</span>
                 </div>
               </div>
@@ -304,31 +378,25 @@ export default function Valuation() {
               <div className="result-analysis">
                 <h4>
                   <AlertTriangle size={16} />
-                  AI Analysis
+                  AI Analizi
                 </h4>
                 <p>{result.ai_analysis}</p>
               </div>
             )}
 
             <div className="result-actions">
-              <button
-                onClick={() => {
-                  setResult(null);
-                  setForm({
-                    brand: "", model: "", year: new Date().getFullYear(),
-                    mileage: 0, fuel_type: "", transmission: "",
-                    body_type: "", color: "", engine_size: "", damage_records: "",
-                  });
-                  setImage(null);
-                  setImagePreview(null);
-                }}
-                className="btn-secondary"
-              >
-                New Valuation
+              <button onClick={resetForm} className="btn-secondary">
+                Yeni Değerleme
               </button>
-              <button onClick={() => navigate("/dashboard")} className="btn-primary">
-                View All Valuations
-              </button>
+              {user ? (
+                <button onClick={() => navigate("/dashboard")} className="btn-primary">
+                  Tüm Değerlemeleri Gör
+                </button>
+              ) : (
+                <button onClick={() => navigate("/register")} className="btn-primary">
+                  Kaydet &amp; Üye Ol
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -45,11 +45,11 @@ BRAND_SLUGS = {
 
 
 def _parse_listing_page(html: str) -> list[dict]:
-    """Parse a listing page and extract car links."""
+    """Parse a listing page and extract car data directly from listing rows."""
     soup = BeautifulSoup(html, "lxml")
     listings = []
 
-    for item in soup.select("tr.listing-list-item, div.listing-card"):
+    for item in soup.select("tr.listing-list-item"):
         link = item.select_one("a[href*='/ilan/']")
         if not link:
             continue
@@ -58,11 +58,50 @@ def _parse_listing_page(html: str) -> list[dict]:
         if href and not href.startswith("http"):
             href = BASE_URL + href
 
-        price_el = item.select_one("span.listing-price, div.listing-price-new")
+        price_el = item.select_one("span.listing-price, span[class*='listing-price']")
         price_text = price_el.get_text(strip=True) if price_el else ""
         price = _parse_price(price_text)
 
-        listings.append({"url": href, "price": price})
+        # Extract year, mileage, color from td.listing-text (in order)
+        text_tds = item.select("td.listing-text")
+        year = None
+        mileage = None
+        color = None
+        if len(text_tds) >= 1:
+            try:
+                year = int(text_tds[0].get_text(strip=True))
+            except (ValueError, IndexError):
+                pass
+        if len(text_tds) >= 2:
+            raw_km = text_tds[1].get_text(strip=True).replace(".", "").replace("km", "").strip()
+            try:
+                mileage = int(raw_km)
+            except (ValueError, IndexError):
+                pass
+        if len(text_tds) >= 3:
+            color = text_tds[2].get_text(strip=True)
+
+        # Extract thumbnail image
+        img_el = item.select_one("img.listing-image")
+        image_url = None
+        if img_el:
+            src = img_el.get("data-src") or img_el.get("src", "")
+            if src and src.startswith("http") and "noImage" not in src:
+                image_url = src
+
+        # Extract model name
+        model_td = item.select_one("td.listing-modelname")
+        model_name = model_td.get_text(strip=True) if model_td else ""
+
+        listings.append({
+            "url": href,
+            "price": price,
+            "year": year,
+            "mileage": mileage,
+            "color": color,
+            "image_url": image_url,
+            "model_name": model_name,
+        })
 
     return listings
 
@@ -116,7 +155,6 @@ def _map_fields(raw: dict) -> dict:
         "yıl": "year",
         "kilometre": "mileage",
         "yakıt tipi": "fuel_type",
-        "yakıt": "fuel_type",
         "vites tipi": "transmission",
         "vites": "transmission",
         "kasa tipi": "body_type",
@@ -162,7 +200,7 @@ def scrape_brand(brand: str, max_pages: int = 2, db: Session | None = None) -> l
 
     with httpx.Client(headers=HEADERS, timeout=30, follow_redirects=True) as client:
         for page in range(1, max_pages + 1):
-            url = f"{BASE_URL}/ikinci-el/{slug}?page={page}"
+            url = f"{BASE_URL}/ikinci-el/otomobil/{slug}?page={page}"
             logger.info(f"Scraping: {url}")
 
             try:
@@ -178,28 +216,48 @@ def scrape_brand(brand: str, max_pages: int = 2, db: Session | None = None) -> l
                 if not listing.get("url"):
                     continue
 
-                time.sleep(random.uniform(1.5, 3.0))
+                # Start with listing-level data (year, mileage, color, image already extracted)
+                mapped = {
+                    "source_url": listing["url"],
+                    "price": listing.get("price"),
+                    "year": listing.get("year"),
+                    "mileage": listing.get("mileage"),
+                    "color": listing.get("color"),
+                    "image_url": listing.get("image_url"),
+                    "brand": brand,
+                }
 
+                # Parse model from listing model name (e.g. "BMW 4 Serisi 420d xDrive")
+                model_name = listing.get("model_name", "")
+                if model_name:
+                    parts = model_name.split(" ", 2)
+                    if len(parts) >= 3:
+                        mapped["model"] = " ".join(parts[1:])
+                    elif len(parts) == 2:
+                        mapped["model"] = parts[1]
+
+                # Fetch detail page for extra fields (fuel, transmission, body_type, etc.)
+                time.sleep(random.uniform(0.3, 0.7))
                 try:
-                    detail_resp = client.get(listing["url"])
+                    detail_resp = client.get(listing["url"], timeout=10)
                     detail_resp.raise_for_status()
+                    details = _parse_detail_page(detail_resp.text)
+                    detail_mapped = _map_fields(details)
+                    # Merge detail fields, don't overwrite listing fields
+                    for k, v in detail_mapped.items():
+                        if k not in mapped or mapped[k] is None:
+                            mapped[k] = v
                 except httpx.HTTPError as e:
-                    logger.error(f"Failed to fetch detail {listing['url']}: {e}")
-                    continue
+                    logger.warning(f"Detail fetch failed for {listing['url']}: {e}")
 
-                details = _parse_detail_page(detail_resp.text)
-                mapped = _map_fields(details)
-                mapped["source_url"] = listing["url"]
-                mapped["price"] = listing.get("price")
                 mapped.setdefault("brand", brand)
 
                 if mapped.get("price") and mapped.get("year") and mapped.get("mileage"):
                     all_cars.append(mapped)
-
                     if db:
                         _save_to_db(mapped, db)
 
-            time.sleep(random.uniform(2.0, 4.0))
+            time.sleep(random.uniform(0.5, 1.0))
 
     logger.info(f"Scraped {len(all_cars)} cars for {brand}")
     return all_cars
