@@ -91,10 +91,18 @@ def _parse_detail_page(html: str) -> dict:
             val = value_el.get_text(strip=True)
             info[key] = val
 
-    # Extract image
-    img_el = soup.select_one("img.detail-image, img.gallery-image, div.image-gallery img")
+    # Extract image — arabam.com detail page
+    img_el = soup.select_one(
+        "div.photo-holder img, "
+        "div.gallery-container img, "
+        "img#main-photo, "
+        "div.swiper-slide img, "
+        "div.detail-photo img"
+    )
     if img_el:
-        info["image_url"] = img_el.get("src", "")
+        src = img_el.get("src") or img_el.get("data-src") or img_el.get("data-lazy", "")
+        if src and src.startswith("http"):
+            info["image_url"] = src
 
     return info
 
@@ -114,6 +122,10 @@ def _map_fields(raw: dict) -> dict:
         "kasa tipi": "body_type",
         "renk": "color",
         "motor hacmi": "engine_size",
+        "motor gücü": "engine_power",
+        "boya-değişen": "damage_records",
+        "hasar kaydı": "damage_records",
+        "tramer": "damage_records",
     }
 
     mapped = {}
@@ -214,6 +226,8 @@ def _save_to_db(car_data: dict, db: Session) -> None:
         price=car_data.get("price", 0),
         color=car_data.get("color"),
         body_type=car_data.get("body_type"),
+        engine_power=car_data.get("engine_power"),
+        damage_records=car_data.get("damage_records"),
         image_url=car_data.get("image_url"),
     )
     db.add(car)

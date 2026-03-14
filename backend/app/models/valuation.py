@@ -60,6 +60,8 @@ class ScrapedCar(Base):
     price: Mapped[float] = mapped_column(Float)
     color: Mapped[str | None] = mapped_column(String(50), nullable=True)
     body_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    engine_power: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    damage_records: Mapped[str | None] = mapped_column(String(200), nullable=True)
     image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     scraped_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

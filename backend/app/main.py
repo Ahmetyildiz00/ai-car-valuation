@@ -2,14 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
+# noqa: models must be imported before alembic can detect them
+import app.models  # noqa: F401
 from app.api.scraper import router as scraper_router
 from app.api.valuation import router as valuation_router
 from app.core.config import settings
-from app.core.database import Base, engine
-
-# Create tables
-Base.metadata.create_all(bind=engine)
-
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version="1.0.0",
