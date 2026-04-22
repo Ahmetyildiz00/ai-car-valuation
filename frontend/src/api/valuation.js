@@ -13,6 +13,8 @@ export const getValuation = (id) => api.get(`/valuations/${id}`);
 
 export const deleteValuation = (id) => api.delete(`/valuations/${id}`);
 
+export const getValuationQuota = () => api.get("/valuations/quota");
+
 export const getScraperBrands = () => api.get("/scraper/brands");
 
 export const triggerScrape = (brand, maxPages = 1) =>

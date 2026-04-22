@@ -11,7 +11,8 @@ import {
   Link2,
   Info,
 } from "lucide-react";
-import { createValuationWithImage } from "../api/valuation";
+import { createValuationWithImage, getValuationQuota } from "../api/valuation";
+import { upgradeSubscription } from "../api/subscription";
 import { useAuth } from "../context/AuthContext";
 
 const FUEL_TYPES = ["Benzin", "Dizel", "LPG", "Hibrit", "Elektrik"];
@@ -20,7 +21,7 @@ const TRANSMISSIONS = ["Manuel", "Otomatik", "Yarı Otomatik"];
 export default function Valuation() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, subscription, refreshSubscription } = useAuth();
   const fileInputRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -28,6 +29,9 @@ export default function Valuation() {
   const [imagePreviews, setImagePreviews] = useState([]);
   const [imageUrl, setImageUrl] = useState("");
   const [dragOver, setDragOver] = useState(false);
+  const [paywall, setPaywall] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
+  const [anonRemaining, setAnonRemaining] = useState(null);
 
   const [form, setForm] = useState({
     year: new Date().getFullYear(),
@@ -52,6 +56,39 @@ export default function Valuation() {
       setForm((prev) => ({ ...prev, ...location.state.form }));
     }
   }, []);
+
+  const refreshAnonQuota = async () => {
+    try {
+      const res = await getValuationQuota();
+      if (!res.data.authenticated) {
+        setAnonRemaining(res.data.remaining);
+      } else {
+        setAnonRemaining(null);
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (!user) {
+      refreshAnonQuota();
+    } else {
+      setAnonRemaining(null);
+    }
+  }, [user]);
+
+  const handleUpgrade = async () => {
+    setUpgrading(true);
+    try {
+      await upgradeSubscription(30);
+      await refreshSubscription();
+      setPaywall(false);
+      toast.success("Pro aboneliği aktifleştirildi!");
+    } catch {
+      toast.error("Abonelik yükseltme başarısız oldu");
+    } finally {
+      setUpgrading(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -88,6 +125,15 @@ export default function Valuation() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (user && subscription && !subscription.unlimited && subscription.remaining === 0) {
+      setPaywall(true);
+      return;
+    }
+    if (!user && anonRemaining === 0) {
+      setPaywall(true);
+      return;
+    }
+
     if (images.length === 0 && !imageUrl.trim()) {
       toast.error("Lütfen en az bir araç görseli yükleyin veya URL girin");
       return;
@@ -117,8 +163,21 @@ export default function Valuation() {
       const res = await createValuationWithImage(formData);
       setResult(res.data);
       toast.success("Değerleme tamamlandı!");
+      if (user) {
+        refreshSubscription();
+      } else {
+        refreshAnonQuota();
+      }
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Değerleme başarısız oldu");
+      if (err.response?.status === 402) {
+        setPaywall(true);
+        if (user) refreshSubscription();
+        else refreshAnonQuota();
+      } else {
+        const detail = err.response?.data?.detail;
+        const msg = typeof detail === "string" ? detail : detail?.message;
+        toast.error(msg || "Değerleme başarısız oldu");
+      }
     } finally {
       setLoading(false);
     }
@@ -157,6 +216,42 @@ export default function Valuation() {
             Fotoğraf yükleyin, yapay zeka marka ve model gibi bilgileri otomatik
             algılar. Siz sadece km ve yakıt tipi gibi ek bilgileri girin.
           </p>
+          {!user && anonRemaining !== null && anonRemaining > 0 && (
+            <div className="quota-banner">
+              <Info size={14} />
+              <span>
+                Kalan ücretsiz deneme hakkı: <strong>{anonRemaining}</strong>. Aylık 10 değerleme için{" "}
+                <button type="button" className="link-btn" onClick={() => navigate("/register")}>
+                  üye olun
+                </button>
+                .
+              </span>
+            </div>
+          )}
+          {user && subscription && !subscription.unlimited && (
+            <div className="quota-banner">
+              <Info size={14} />
+              <span>
+                Bu ay kalan değerleme hakkı:{" "}
+                <strong>
+                  {subscription.remaining} / {subscription.monthly_limit}
+                </strong>
+                . Sınırsız kullanım için{" "}
+                <button type="button" className="link-btn" onClick={() => setPaywall(true)}>
+                  Pro'ya geçin
+                </button>
+                .
+              </span>
+            </div>
+          )}
+          {user && subscription?.unlimited && (
+            <div className="quota-banner quota-banner-pro">
+              <TrendingUp size={14} />
+              <span>
+                <strong>Pro</strong> abonelik aktif — sınırsız değerleme.
+              </span>
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="valuation-form">
@@ -335,6 +430,62 @@ export default function Valuation() {
           </button>
         </form>
       </div>
+
+      {paywall && (
+        <div className="paywall-overlay" onClick={() => setPaywall(false)}>
+          <div className="paywall-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="paywall-close" onClick={() => setPaywall(false)} aria-label="Kapat">
+              <X size={18} />
+            </button>
+            <div className="paywall-icon">
+              <TrendingUp size={28} />
+            </div>
+            {!user ? (
+              <>
+                <h3>Ücretsiz deneme hakkınız doldu</h3>
+                <p>
+                  3 ücretsiz değerlemenizi kullandınız. Ücretsiz üyelikle{" "}
+                  <strong>ayda 10 değerleme</strong>, Pro ile <strong>sınırsız değerleme</strong>{" "}
+                  hakkı kazanırsınız.
+                </p>
+                <div className="paywall-actions">
+                  <button className="btn-secondary" onClick={() => navigate("/login")}>
+                    Giriş Yap
+                  </button>
+                  <button className="btn-primary" onClick={() => navigate("/register")}>
+                    Üye Ol
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3>Pro aboneliğe geçin</h3>
+                <p>
+                  {subscription?.remaining === 0
+                    ? `Bu ayki ${subscription.monthly_limit} değerleme hakkınız doldu. `
+                    : `Ücretsiz planda ayda ${subscription?.monthly_limit ?? 10} değerleme hakkınız var. `}
+                  Pro aboneliği ile <strong>sınırsız değerleme</strong> yapabilirsiniz.
+                </p>
+                <div className="paywall-actions">
+                  <button className="btn-secondary" onClick={() => setPaywall(false)} disabled={upgrading}>
+                    Vazgeç
+                  </button>
+                  <button className="btn-primary" onClick={handleUpgrade} disabled={upgrading}>
+                    {upgrading ? (
+                      <>
+                        <Loader size={16} className="spin" />
+                        Yükseltiliyor...
+                      </>
+                    ) : (
+                      "Pro'ya Geç"
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {result && (
         <div className="result-container">

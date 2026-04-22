@@ -1606,3 +1606,117 @@ a:hover {
     text-align: center;
   }
 }
+
+/* ===== Quota banner & paywall ===== */
+.quota-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.quota-banner strong {
+  font-weight: 700;
+}
+
+.quota-banner-pro {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #1d4ed8;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  font-size: inherit;
+}
+
+.paywall-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.paywall-modal {
+  position: relative;
+  background: #fff;
+  border-radius: 14px;
+  max-width: 420px;
+  width: 100%;
+  padding: 2rem 1.75rem 1.5rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.paywall-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.paywall-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.paywall-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #dbeafe;
+  color: #1d4ed8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.paywall-modal h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #0f172a;
+}
+
+.paywall-modal p {
+  color: #475569;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+}
+
+.paywall-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.paywall-actions .btn-primary,
+.paywall-actions .btn-secondary {
+  flex: 1;
+}

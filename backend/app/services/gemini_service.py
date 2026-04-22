@@ -11,41 +11,47 @@ logger = logging.getLogger(__name__)
 
 def _configure_gemini():
     genai.configure(api_key=settings.GEMINI_API_KEY)
-    return genai.GenerativeModel("gemini-2.5-flash-preview-05-20")
+    return genai.GenerativeModel("gemini-2.5-flash")
 
 
-def analyze_car_image(image_path: str) -> dict:
-    """Analyze a car image using Gemini to extract visual condition data."""
+def analyze_car_images(image_paths: list[str]) -> dict:
+    """Analyze one or more car images to extract identification + visual condition."""
     model = _configure_gemini()
-    img = Image.open(image_path)
+    imgs = [Image.open(p) for p in image_paths]
 
-    prompt = """You are an expert automotive appraiser. Analyze this car image and provide:
+    prompt = """You are an expert automotive appraiser. Analyze these car images (may be multiple angles of the same vehicle) and identify the vehicle and its condition.
 
-1. **Exterior Condition** (1-10 scale): Rate the overall exterior condition
-2. **Paint Quality** (1-10 scale): Rate paint condition (scratches, fading, oxidation)
-3. **Visible Damages**: List any visible damages (dents, scratches, rust, broken parts)
-4. **Estimated Body Type**: sedan, hatchback, SUV, coupe, etc.
-5. **Estimated Color**: The car's color
-6. **Cleanliness** (1-10 scale): How clean/well-maintained the car appears
-7. **Overall Condition Score** (1-10): Overall visual condition assessment
+Provide:
+1. **Brand** (make): e.g. Renault, Volkswagen, BMW
+2. **Model**: e.g. Clio, Golf, 3 Series
+3. **Body Type**: sedan, hatchback, SUV, coupe, station wagon, etc.
+4. **Color**
+5. **Exterior Condition** (1-10)
+6. **Paint Quality** (1-10)
+7. **Visible Damages**: list of damages (dents, scratches, rust, broken parts) — empty list if none
+8. **Cleanliness** (1-10)
+9. **Overall Condition Score** (1-10)
 
-Return ONLY a valid JSON object with these keys:
+If any field cannot be determined confidently, use "unknown" for strings or null for numbers.
+
+Return ONLY a valid JSON object. The "notes" field and items in "visible_damages" MUST be in Turkish (Türkçe):
 {
+    "brand": "<string>",
+    "model": "<string>",
+    "body_type": "<string>",
+    "color": "<string, Türkçe>",
     "exterior_condition": <number>,
     "paint_quality": <number>,
-    "visible_damages": ["damage1", "damage2"],
-    "body_type": "<string>",
-    "color": "<string>",
+    "visible_damages": ["<Türkçe hasar açıklaması>"],
     "cleanliness": <number>,
     "overall_score": <number>,
-    "notes": "<brief summary>"
+    "notes": "<Türkçe kısa özet>"
 }"""
 
     try:
-        response = model.generate_content([prompt, img])
+        response = model.generate_content([prompt, *imgs])
         text = response.text.strip()
 
-        # Extract JSON from response
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()
         elif "```" in text:
@@ -55,15 +61,22 @@ Return ONLY a valid JSON object with these keys:
     except Exception as e:
         logger.error(f"Gemini image analysis failed: {e}")
         return {
+            "brand": "unknown",
+            "model": "unknown",
+            "body_type": "unknown",
+            "color": "unknown",
             "exterior_condition": 5,
             "paint_quality": 5,
             "visible_damages": [],
-            "body_type": "unknown",
-            "color": "unknown",
             "cleanliness": 5,
             "overall_score": 5,
             "notes": "Image analysis unavailable",
         }
+
+
+def analyze_car_image(image_path: str) -> dict:
+    """Backwards-compatible single-image wrapper."""
+    return analyze_car_images([image_path])
 
 
 def predict_price(
@@ -121,14 +134,14 @@ Analyze all the data and provide your price prediction. Consider:
 5. Current market prices for similar vehicles
 6. Damage history impact on value
 
-Return ONLY a valid JSON object:
+Return ONLY a valid JSON object. The "analysis" field MUST be written in Turkish (Türkçe):
 {{
     "predicted_price": <number in TL>,
     "price_min": <number in TL>,
     "price_max": <number in TL>,
     "condition_score": <1-10>,
     "confidence": "<low/medium/high>",
-    "analysis": "<detailed 3-5 sentence explanation of the valuation, factors considered, and price justification>"
+    "analysis": "<Türkçe, 3-5 cümlelik detaylı değerlendirme: fiyatın dayanakları, dikkate alınan faktörler ve fiyat gerekçesi>"
 }}"""
 
     try:

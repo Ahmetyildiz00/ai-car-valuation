@@ -19,6 +19,10 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: str = "http://localhost:5173"
 
+    FREE_TIER_MONTHLY_LIMIT: int = 10
+    FREE_ANONYMOUS_USES: int = 3
+    ANONYMOUS_QUOTA_TTL_SECONDS: int = 60 * 60 * 24 * 30
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
     @property

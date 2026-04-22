@@ -21,23 +21,35 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
-// Request interceptor — attach access token
+const getOrCreateClientId = () => {
+  let cid = localStorage.getItem("anon_client_id");
+  if (!cid) {
+    cid = crypto.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now();
+    localStorage.setItem("anon_client_id", cid);
+  }
+  return cid;
+};
+
+// Request interceptor — attach access token + stable anonymous client id
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("access_token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  config.headers["X-Client-Id"] = getOrCreateClientId();
   return config;
 });
 
-// Response interceptor — auto refresh on 401
+// Response interceptor — auto refresh on 401 (only for authenticated users)
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const hadToken = Boolean(localStorage.getItem("access_token"));
 
     if (
       error.response?.status === 401 &&
+      hadToken &&
       !originalRequest._retry &&
       !originalRequest.url.includes("/auth/login") &&
       !originalRequest.url.includes("/auth/refresh")

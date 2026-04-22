@@ -31,6 +31,12 @@ class User(Base):
     valuations: Mapped[list["Valuation"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    subscription: Mapped["Subscription"] = relationship(
+        back_populates="user", cascade="all, delete-orphan", uselist=False
+    )
+    usage_records: Mapped[list["ValuationUsage"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class RefreshToken(Base):
