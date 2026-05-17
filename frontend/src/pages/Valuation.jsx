@@ -5,8 +5,6 @@ import {
   Upload,
   Loader,
   TrendingUp,
-  AlertTriangle,
-  CheckCircle,
   X,
   Link2,
   Info,
@@ -16,6 +14,7 @@ import { createValuationWithImage, getValuationQuota } from "../api/valuation";
 import { upgradeSubscription } from "../api/subscription";
 import { useAuth } from "../context/AuthContext";
 import AiThinking from "../components/AiThinking";
+import ValuationResult from "../components/ValuationResult";
 import { showErrorToast } from "../lib/errors";
 
 const FUEL_TYPES = ["Benzin", "Dizel", "LPG", "Hibrit", "Elektrik"];
@@ -208,9 +207,24 @@ export default function Valuation() {
     setImageUrl("");
   };
 
+  if (result) {
+    return (
+      <div className="valuation-page">
+        <ValuationResult
+          result={result}
+          formatPrice={formatPrice}
+          onReset={resetForm}
+          onPrimary={user ? () => navigate("/dashboard") : () => navigate("/register")}
+          primaryLabel={user ? "Tüm Değerlemeleri Gör" : "Kaydet & Üye Ol"}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="valuation-page">
       <div className="valuation-form-container">
+        {loading && <AiThinking />}
         <div className="form-header">
           <h1>Araç Değerleme</h1>
           <p>
@@ -432,8 +446,6 @@ export default function Valuation() {
         </form>
       </div>
 
-      {loading && <AiThinking />}
-
       {paywall && (
         <div className="paywall-overlay" onClick={() => setPaywall(false)}>
           <div className="paywall-modal" onClick={(e) => e.stopPropagation()}>
@@ -490,71 +502,6 @@ export default function Valuation() {
         </div>
       )}
 
-      {result && (
-        <div className="result-container">
-          <div className="result-card">
-            <div className="result-header">
-              <CheckCircle size={28} className="success-icon" />
-              <h2>Değerleme Sonucu</h2>
-            </div>
-
-            <div className="result-car-info">
-              <h3>
-                {result.brand} {result.model} ({result.year})
-              </h3>
-              <p>
-                {result.mileage?.toLocaleString("tr-TR")} km &middot; {result.fuel_type} &middot; {result.transmission}
-              </p>
-            </div>
-
-            <div className="result-price">
-              <div className="price-main">
-                <span className="price-label">Tahmini Piyasa Değeri</span>
-                <span className="price-amount">{formatPrice(result.predicted_price)}</span>
-              </div>
-              <div className="price-range-display">
-                <div className="range-item">
-                  <span>Minimum</span>
-                  <span>{formatPrice(result.price_min)}</span>
-                </div>
-                <div className="range-item">
-                  <span>Maksimum</span>
-                  <span>{formatPrice(result.price_max)}</span>
-                </div>
-                <div className="range-item">
-                  <span>Durum Skoru</span>
-                  <span>{result.condition_score}/10</span>
-                </div>
-              </div>
-            </div>
-
-            {result.ai_analysis && (
-              <div className="result-analysis">
-                <h4>
-                  <AlertTriangle size={16} />
-                  AI Analizi
-                </h4>
-                <p>{result.ai_analysis}</p>
-              </div>
-            )}
-
-            <div className="result-actions">
-              <button onClick={resetForm} className="btn-secondary">
-                Yeni Değerleme
-              </button>
-              {user ? (
-                <button onClick={() => navigate("/dashboard")} className="btn-primary">
-                  Tüm Değerlemeleri Gör
-                </button>
-              ) : (
-                <button onClick={() => navigate("/register")} className="btn-primary">
-                  Kaydet &amp; Üye Ol
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
