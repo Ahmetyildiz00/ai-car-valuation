@@ -216,8 +216,9 @@ a:hover {
 .auth-brand {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 1.5rem;
+  gap: 0;
+  font-size: 1.75rem;
+  line-height: 1;
   font-weight: 700;
   color: var(--text) !important;
   text-decoration: none !important;
@@ -225,10 +226,12 @@ a:hover {
 }
 
 .auth-brand-icon {
-  height: 96px;
+  height: 84px;
   width: auto;
   object-fit: contain;
   display: block;
+  margin-left: -15px;
+  margin-right: -8px;
 }
 
 .auth-header p {
