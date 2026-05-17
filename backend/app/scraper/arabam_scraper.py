@@ -44,6 +44,23 @@ BRAND_SLUGS = {
 }
 
 
+# Top 10 most-listed brand/model pairs in Turkish 2nd-hand market.
+# Used by the admin "Bulk seed" feature: scrape ~500 listings per pair.
+TOP_MODELS: list[tuple[str, str, str]] = [
+    # (display brand, display model, arabam.com slug path "brand-model")
+    ("Volkswagen", "Golf", "volkswagen-golf"),
+    ("Renault", "Clio", "renault-clio"),
+    ("Renault", "Megane", "renault-megane"),
+    ("Fiat", "Egea", "fiat-egea"),
+    ("Opel", "Astra", "opel-astra"),
+    ("Ford", "Focus", "ford-focus"),
+    ("Hyundai", "i20", "hyundai-i20"),
+    ("Toyota", "Corolla", "toyota-corolla"),
+    ("Honda", "Civic", "honda-civic"),
+    ("Dacia", "Sandero", "dacia-sandero"),
+]
+
+
 def _parse_listing_page(html: str) -> list[dict]:
     """Parse a listing page and extract car data directly from listing rows."""
     soup = BeautifulSoup(html, "lxml")
@@ -191,6 +208,91 @@ def _map_fields(raw: dict) -> dict:
             mapped.pop("mileage", None)
 
     return mapped
+
+
+def scrape_path(
+    listing_path: str,
+    brand: str,
+    max_listings: int = 500,
+    db: Session | None = None,
+) -> list[dict]:
+    """Generic scraper for an arabam.com listing path (brand or brand-model).
+
+    `listing_path` is the URL segment after `/ikinci-el/otomobil/`, e.g.
+    `bmw` or `volkswagen-golf`. `brand` is what we store as the brand field.
+    Stops once `max_listings` saved cars is reached.
+    """
+    all_cars: list[dict] = []
+    page = 1
+    # arabam.com lists ~20 per page; allow plenty of headroom
+    max_pages = max(2, (max_listings // 15) + 4)
+
+    with httpx.Client(headers=HEADERS, timeout=30, follow_redirects=True) as client:
+        while page <= max_pages and len(all_cars) < max_listings:
+            url = f"{BASE_URL}/ikinci-el/otomobil/{listing_path}?page={page}"
+            logger.info(f"Scraping: {url}")
+
+            try:
+                resp = client.get(url)
+                resp.raise_for_status()
+            except httpx.HTTPError as e:
+                logger.error(f"Failed to fetch {url}: {e}")
+                page += 1
+                continue
+
+            listings = _parse_listing_page(resp.text)
+            if not listings:
+                logger.info(f"No more listings at page {page} for {listing_path}")
+                break
+
+            for listing in listings:
+                if len(all_cars) >= max_listings:
+                    break
+                if not listing.get("url"):
+                    continue
+
+                mapped = {
+                    "source_url": listing["url"],
+                    "price": listing.get("price"),
+                    "year": listing.get("year"),
+                    "mileage": listing.get("mileage"),
+                    "color": listing.get("color"),
+                    "image_url": listing.get("image_url"),
+                    "brand": brand,
+                }
+
+                model_name = listing.get("model_name", "")
+                if model_name:
+                    parts = model_name.split(" ", 2)
+                    if len(parts) >= 3:
+                        mapped["model"] = " ".join(parts[1:])
+                    elif len(parts) == 2:
+                        mapped["model"] = parts[1]
+
+                time.sleep(random.uniform(0.3, 0.7))
+                try:
+                    detail_resp = client.get(listing["url"], timeout=10)
+                    detail_resp.raise_for_status()
+                    details = _parse_detail_page(detail_resp.text)
+                    detail_mapped = _map_fields(details)
+                    for k, v in detail_mapped.items():
+                        if k not in mapped or mapped[k] is None:
+                            mapped[k] = v
+                except httpx.HTTPError as e:
+                    logger.warning(f"Detail fetch failed for {listing['url']}: {e}")
+
+                mapped.setdefault("brand", brand)
+
+                if mapped.get("price") and mapped.get("year") and mapped.get("mileage"):
+                    all_cars.append(mapped)
+                    if db:
+                        _save_to_db(mapped, db)
+
+            page += 1
+            time.sleep(random.uniform(0.5, 1.0))
+
+    logger.info(f"Scraped {len(all_cars)} cars for path={listing_path}")
+    return all_cars
 
 
 def scrape_brand(brand: str, max_pages: int = 2, db: Session | None = None) -> list[dict]:

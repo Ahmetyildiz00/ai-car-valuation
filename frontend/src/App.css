@@ -1743,3 +1743,161 @@ a:hover {
 .paywall-actions .btn-secondary {
   flex: 1;
 }
+
+/* ===== Admin page ===== */
+.nav-link-admin {
+  color: var(--primary) !important;
+}
+
+.admin-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.admin-card {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.admin-card-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.admin-section {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-section-header {
+  margin-bottom: 1.25rem;
+}
+
+.admin-section-header h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.admin-section-header p {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.admin-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.admin-controls .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 0 0 200px;
+}
+
+.admin-controls .form-group label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.admin-controls .form-group input {
+  padding: 0.6rem 0.85rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  color: var(--text);
+  outline: none;
+}
+
+.admin-controls .form-group input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.admin-progress {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: var(--bg-soft);
+  border-radius: var(--radius-sm);
+}
+
+.admin-progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.admin-progress-pct {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.admin-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.admin-progress-fill {
+  height: 100%;
+  background: var(--primary);
+  transition: width 0.3s ease;
+}
+
+.admin-progress-current {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.admin-progress-results {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.admin-progress-results h4 {
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.admin-progress-results ul {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}

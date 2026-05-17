@@ -51,3 +51,12 @@ def get_optional_user(
     if not user or not user.is_active:
         return None
     return user
+
+
+def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    if not getattr(current_user, "is_admin", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return current_user

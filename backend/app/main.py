@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.admin import router as admin_router
 from app.api.auth import router as auth_router
 # noqa: models must be imported before alembic can detect them
 import app.models  # noqa: F401
@@ -27,6 +28,7 @@ app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
 app.include_router(valuation_router, prefix=settings.API_V1_PREFIX)
 app.include_router(subscription_router, prefix=settings.API_V1_PREFIX)
 app.include_router(scraper_router, prefix=settings.API_V1_PREFIX)
+app.include_router(admin_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/")

@@ -1,4 +1,4 @@
-import { LogOut, History, PlusCircle } from "lucide-react";
+import { LogOut, History, PlusCircle, Shield } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import carvalIcon from "../assets/carval-icon.png";
@@ -30,6 +30,12 @@ export default function Navbar() {
               <PlusCircle size={18} />
               <span>Yeni Değerleme</span>
             </Link>
+            {user.is_admin && (
+              <Link to="/admin" className="nav-link nav-link-admin">
+                <Shield size={18} />
+                <span>Admin</span>
+              </Link>
+            )}
           </div>
         )}
 
