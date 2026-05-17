@@ -4,8 +4,10 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-car_valuation}
+    ports:
+      - "5434:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -17,6 +19,8 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    ports:
+      - "6379:6379"
     volumes:
       - redisdata:/data
     healthcheck:
@@ -28,47 +32,57 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
+    ports:
+      - "8000:8000"
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-car_valuation}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-car_valuation}
       REDIS_URL: redis://redis:6379/0
-      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
-      REFRESH_SECRET_KEY: ${REFRESH_SECRET_KEY:?REFRESH_SECRET_KEY is required}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:?GEMINI_API_KEY is required}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-change-me}
+      REFRESH_SECRET_KEY: ${REFRESH_SECRET_KEY:-dev-refresh-secret}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      CORS_ORIGINS: http://localhost:5173,http://localhost:80,http://localhost
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - ./backend:/app
 
   taskiq-worker:
     build: ./backend
     restart: unless-stopped
     command: taskiq worker app.core.broker:broker app.tasks.scraper_tasks
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-car_valuation}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-car_valuation}
       REDIS_URL: redis://redis:6379/0
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - ./backend:/app
 
   taskiq-scheduler:
     build: ./backend
     restart: unless-stopped
     command: taskiq scheduler app.tasks.scheduler:scheduler
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-car_valuation}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-car_valuation}
       REDIS_URL: redis://redis:6379/0
     depends_on:
       redis:
         condition: service_healthy
+    volumes:
+      - ./backend:/app
 
   frontend:
     build: ./frontend
     restart: unless-stopped
+    ports:
+      - "80:80"
     depends_on:
       - backend
 
