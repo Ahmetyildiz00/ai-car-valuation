@@ -30,11 +30,13 @@ services:
       retries: 10
 
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     restart: unless-stopped
     command: >
       sh -c "alembic upgrade head &&
-             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     ports:
       - "8000:8000"
     environment:
@@ -43,7 +45,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:-dev-secret-change-me}
       REFRESH_SECRET_KEY: ${REFRESH_SECRET_KEY:-dev-refresh-secret}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      CORS_ORIGINS: http://localhost:5173,http://localhost:80,http://localhost
+      CORS_ORIGINS: http://localhost:5173,http://localhost:8000
     depends_on:
       db:
         condition: service_healthy
@@ -53,7 +55,9 @@ services:
       - ./backend:/app
 
   taskiq-worker:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     restart: unless-stopped
     command: taskiq worker app.core.broker:broker app.tasks.scraper_tasks
     environment:
@@ -69,7 +73,9 @@ services:
       - ./backend:/app
 
   taskiq-scheduler:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     restart: unless-stopped
     command: taskiq scheduler app.tasks.scheduler:scheduler
     environment:
@@ -80,14 +86,6 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
-
-  frontend:
-    build: ./frontend
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
 
 volumes:
   pgdata:
