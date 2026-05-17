@@ -56,20 +56,70 @@ BRAND_SLUGS = {
 }
 
 
-# Top 10 most-listed brand/model pairs in Turkish 2nd-hand market.
-# Used by the admin "Bulk seed" feature: scrape ~500 listings per pair.
+# Top 10 brands × top 5 models per brand in the Turkish 2nd-hand market.
+# Used by the admin "Bulk seed" feature: scrape ~200 listings per (brand, model).
+# Tuple: (display brand, display model, arabam.com slug path "brand-model")
 TOP_MODELS: list[tuple[str, str, str]] = [
-    # (display brand, display model, arabam.com slug path "brand-model")
+    # Volkswagen
     ("Volkswagen", "Golf", "volkswagen-golf"),
+    ("Volkswagen", "Passat", "volkswagen-passat"),
+    ("Volkswagen", "Polo", "volkswagen-polo"),
+    ("Volkswagen", "Jetta", "volkswagen-jetta"),
+    ("Volkswagen", "Tiguan", "volkswagen-tiguan"),
+    # Renault
     ("Renault", "Clio", "renault-clio"),
     ("Renault", "Megane", "renault-megane"),
+    ("Renault", "Symbol", "renault-symbol"),
+    ("Renault", "Kadjar", "renault-kadjar"),
+    ("Renault", "Captur", "renault-captur"),
+    # Fiat
     ("Fiat", "Egea", "fiat-egea"),
-    ("Opel", "Astra", "opel-astra"),
+    ("Fiat", "Linea", "fiat-linea"),
+    ("Fiat", "Doblo", "fiat-doblo"),
+    ("Fiat", "Punto", "fiat-punto"),
+    ("Fiat", "500", "fiat-500"),
+    # Ford
     ("Ford", "Focus", "ford-focus"),
-    ("Hyundai", "i20", "hyundai-i20"),
+    ("Ford", "Fiesta", "ford-fiesta"),
+    ("Ford", "Mondeo", "ford-mondeo"),
+    ("Ford", "Kuga", "ford-kuga"),
+    ("Ford", "Tourneo Courier", "ford-tourneo-courier"),
+    # Opel
+    ("Opel", "Astra", "opel-astra"),
+    ("Opel", "Corsa", "opel-corsa"),
+    ("Opel", "Insignia", "opel-insignia"),
+    ("Opel", "Vectra", "opel-vectra"),
+    ("Opel", "Mokka", "opel-mokka"),
+    # Toyota
     ("Toyota", "Corolla", "toyota-corolla"),
+    ("Toyota", "Auris", "toyota-auris"),
+    ("Toyota", "Yaris", "toyota-yaris"),
+    ("Toyota", "C-HR", "toyota-c-hr"),
+    ("Toyota", "RAV4", "toyota-rav4"),
+    # Honda
     ("Honda", "Civic", "honda-civic"),
+    ("Honda", "City", "honda-city"),
+    ("Honda", "CR-V", "honda-cr-v"),
+    ("Honda", "Jazz", "honda-jazz"),
+    ("Honda", "Accord", "honda-accord"),
+    # Hyundai
+    ("Hyundai", "i20", "hyundai-i20"),
+    ("Hyundai", "i30", "hyundai-i30"),
+    ("Hyundai", "Accent", "hyundai-accent"),
+    ("Hyundai", "Tucson", "hyundai-tucson"),
+    ("Hyundai", "Elantra", "hyundai-elantra"),
+    # Dacia
     ("Dacia", "Sandero", "dacia-sandero"),
+    ("Dacia", "Duster", "dacia-duster"),
+    ("Dacia", "Logan", "dacia-logan"),
+    ("Dacia", "Dokker", "dacia-dokker"),
+    ("Dacia", "Lodgy", "dacia-lodgy"),
+    # BMW
+    ("BMW", "3 Serisi", "bmw-3-serisi"),
+    ("BMW", "5 Serisi", "bmw-5-serisi"),
+    ("BMW", "1 Serisi", "bmw-1-serisi"),
+    ("BMW", "X5", "bmw-x5"),
+    ("BMW", "X3", "bmw-x3"),
 ]
 
 
@@ -399,23 +449,9 @@ def _save_to_db(car_data: dict, db: Session) -> None:
         color=car_data.get("color"),
         body_type=car_data.get("body_type"),
         engine_power=car_data.get("engine_power"),
+        engine_size=car_data.get("engine_size"),
         damage_records=car_data.get("damage_records"),
         image_url=car_data.get("image_url"),
     )
     db.add(car)
     db.commit()
-
-
-def get_market_data(brand: str, model: str, year: int, db: Session) -> list[ScrapedCar]:
-    """Get scraped market data for comparison."""
-    query = db.query(ScrapedCar).filter(
-        ScrapedCar.brand.ilike(f"%{brand}%"),
-        ScrapedCar.model.ilike(f"%{model}%"),
-    )
-
-    if year:
-        query = query.filter(
-            ScrapedCar.year.between(year - 2, year + 2)
-        )
-
-    return query.limit(50).all()

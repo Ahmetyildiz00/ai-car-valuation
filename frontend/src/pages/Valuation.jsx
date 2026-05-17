@@ -10,10 +10,13 @@ import {
   X,
   Link2,
   Info,
+  Bot,
 } from "lucide-react";
 import { createValuationWithImage, getValuationQuota } from "../api/valuation";
 import { upgradeSubscription } from "../api/subscription";
 import { useAuth } from "../context/AuthContext";
+import AiThinking from "../components/AiThinking";
+import { showErrorToast } from "../lib/errors";
 
 const FUEL_TYPES = ["Benzin", "Dizel", "LPG", "Hibrit", "Elektrik"];
 const TRANSMISSIONS = ["Manuel", "Otomatik", "Yarı Otomatik"];
@@ -174,9 +177,7 @@ export default function Valuation() {
         if (user) refreshSubscription();
         else refreshAnonQuota();
       } else {
-        const detail = err.response?.data?.detail;
-        const msg = typeof detail === "string" ? detail : detail?.message;
-        toast.error(msg || "Değerleme başarısız oldu");
+        showErrorToast(err, "Değerleme başarısız oldu");
       }
     } finally {
       setLoading(false);
@@ -383,13 +384,13 @@ export default function Valuation() {
               </div>
 
               <div className="form-group">
-                <label>Motor Hacmi</label>
+                <label>Motor Hacmi (L)</label>
                 <input
                   type="text"
                   name="engine_size"
                   value={form.engine_size}
                   onChange={handleChange}
-                  placeholder="örn. 1.6, 2.0"
+                  placeholder="örn. 1.6 (litre)"
                 />
               </div>
 
@@ -423,13 +424,15 @@ export default function Valuation() {
               </>
             ) : (
               <>
-                <TrendingUp size={20} />
+                <Bot size={20} />
                 Değerlemeyi Başlat
               </>
             )}
           </button>
         </form>
       </div>
+
+      {loading && <AiThinking />}
 
       {paywall && (
         <div className="paywall-overlay" onClick={() => setPaywall(false)}>

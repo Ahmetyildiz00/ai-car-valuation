@@ -75,7 +75,7 @@ a:hover {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 1.5rem;
-  height: 80px;
+  height: 70px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -84,7 +84,6 @@ a:hover {
 .navbar-brand {
   display: flex;
   align-items: center;
-  gap: 0;
   font-size: 1.3rem;
   font-weight: 700;
   color: var(--text) !important;
@@ -92,11 +91,11 @@ a:hover {
 }
 
 .navbar-brand-icon {
-  height: 28px;
+  height: 84px;
+  margin-right: -10px;
   width: auto;
   object-fit: contain;
   display: block;
-  margin-right: 4px;
 }
 
 .navbar-links {
@@ -981,7 +980,7 @@ a:hover {
 }
 
 .brand-icon {
-  height: 96px;
+  height: 84px;
   width: auto;
   object-fit: contain;
   display: block;
@@ -1899,5 +1898,203 @@ a:hover {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.4rem;
   font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* ===== AI Thinking Overlay ===== */
+.ai-thinking-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 1rem;
+  animation: ai-fade-in 0.2s ease-out;
+}
+
+.ai-thinking-card {
+  background: var(--bg-white);
+  border-radius: var(--radius);
+  padding: 2.5rem 2rem 2rem;
+  max-width: 460px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+}
+
+.ai-robot-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  margin-bottom: 1.25rem;
+}
+
+.ai-robot {
+  position: relative;
+  z-index: 2;
+  color: var(--primary);
+  animation: ai-robot-bounce 1.4s ease-in-out infinite;
+}
+
+.ai-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--primary);
+  opacity: 0.35;
+  animation: ai-pulse 2s ease-out infinite;
+}
+
+.ai-pulse-delay {
+  animation-delay: 1s;
+}
+
+.ai-thinking-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+  color: var(--text);
+}
+
+.ai-step-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  text-align: left;
+}
+
+.ai-step {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+.ai-step.is-done {
+  color: var(--text-muted);
+}
+
+.ai-step.is-active {
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.ai-step-icon {
+  flex-shrink: 0;
+}
+
+.ai-step.is-active .ai-step-icon {
+  animation: spin 1.2s linear infinite;
+}
+
+@keyframes ai-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ai-robot-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes ai-pulse {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* ===== Toast cards ===== */
+.toast-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+  min-width: 280px;
+  max-width: 380px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12),
+              0 2px 6px rgba(15, 23, 42, 0.06);
+  pointer-events: auto;
+}
+
+.toast-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toast-icon-success {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.toast-icon-error {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.toast-icon-loading {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.toast-message {
+  flex: 1;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.toast-close {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.toast-close:hover {
+  background: var(--bg-soft);
   color: var(--text-muted);
 }

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Mail, Lock } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { showErrorToast } from "../lib/errors";
 import carvalIcon from "../assets/carval-icon.png";
 
 export default function Login() {
@@ -20,7 +21,7 @@ export default function Login() {
       toast.success("Hoş geldiniz!");
       navigate("/dashboard");
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Giriş başarısız");
+      showErrorToast(err, "Giriş başarısız");
     } finally {
       setLoading(false);
     }

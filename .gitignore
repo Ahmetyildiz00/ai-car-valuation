@@ -26,3 +26,6 @@ Thumbs.db
 
 # Docker
 pgdata/
+
+# Data dumps / one-off seed exports
+backend/data/*.csv

@@ -33,6 +33,10 @@ def get_scrape_status() -> dict:
         return {"state": "idle"}
 
 
+def clear_scrape_status() -> None:
+    _redis().delete(SCRAPE_STATUS_KEY)
+
+
 @broker.task(
     task_name="scrape_all_brands",
     schedule=[{"cron": "0 0 * * *"}],

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Mail, Lock, User } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { showErrorToast } from "../lib/errors";
 import carvalIcon from "../assets/carval-icon.png";
 
 export default function Register() {
@@ -30,7 +31,7 @@ export default function Register() {
       toast.success("Hesap oluşturuldu! Giriş yapın.");
       navigate("/login");
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Kayıt başarısız");
+      showErrorToast(err, "Kayıt başarısız");
     } finally {
       setLoading(false);
     }
