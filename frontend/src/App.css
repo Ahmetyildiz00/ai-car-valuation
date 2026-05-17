@@ -1529,6 +1529,10 @@ a:hover {
   justify-content: space-between;
 }
 
+.landing-footer .brand-icon {
+  margin-right: -0.3rem;
+}
+
 .footer-copy {
   font-size: 0.8rem;
   color: var(--text-dim);
