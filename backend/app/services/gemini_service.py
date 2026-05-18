@@ -11,6 +11,7 @@ import logging
 from functools import lru_cache
 
 import google.generativeai as genai
+import pillow_avif  # noqa: F401  — registers AVIF support on PIL
 from PIL import Image
 
 from app.core.config import settings
