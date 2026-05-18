@@ -1,16 +1,28 @@
-# React + Vite
+# Frontend (Carval.ai)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 + Vite SPA. See the [root README](../README.md) for the full picture.
 
-Currently, two official plugins are available:
+## Scripts
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+npm run dev            # Vite dev server on :5173 with /api proxy to :8000
+npm run build          # production build into dist/ (used by the backend Dockerfile)
+npm run lint           # ESLint
+npm run cypress:open   # interactive E2E
+npm run cypress:run    # headless E2E
+```
 
-## React Compiler
+## Notable folders
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- `src/pages/`         — Landing, Login, Register, Dashboard, Valuation, Admin
+- `src/components/`    — shared UI (Navbar, AiThinking overlay, ValuationResult hero, admin/*)
+- `src/hooks/usePollingStatus.js` — polls a status endpoint while a job is running
+- `src/lib/errors.js`  — `showErrorToast(err, fallback)` — central error → toast adapter
+- `src/api/`           — axios clients (`/auth`, `/valuations`, `/subscription`, `/admin`)
 
-## Expanding the ESLint configuration
+## Production build
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+In production the SPA is **not** served by its own container. Vite builds into
+`frontend/dist/`, which the backend Dockerfile copies into the FastAPI image
+and exposes via `StaticFiles` with an SPA fallback. Same origin, no CORS, no
+nginx hop.
