@@ -10,10 +10,13 @@ import {
   Fuel,
 } from "lucide-react";
 import { getValuations, deleteValuation } from "../api/valuation";
+import ConfirmModal from "../components/ConfirmModal";
 
 export default function Dashboard() {
   const [valuations, setValuations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchValuations = async () => {
     try {
@@ -30,14 +33,20 @@ export default function Dashboard() {
     fetchValuations();
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!confirm("Bu değerleme silinsin mi?")) return;
+  const pendingDelete = valuations.find((v) => v.id === pendingDeleteId);
+
+  const confirmDelete = async () => {
+    if (!pendingDeleteId) return;
+    setDeleting(true);
     try {
-      await deleteValuation(id);
-      setValuations((prev) => prev.filter((v) => v.id !== id));
+      await deleteValuation(pendingDeleteId);
+      setValuations((prev) => prev.filter((v) => v.id !== pendingDeleteId));
       toast.success("Değerleme silindi");
+      setPendingDeleteId(null);
     } catch {
       toast.error("Silinemedi");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -89,7 +98,7 @@ export default function Dashboard() {
                   {v.brand} {v.model}
                 </h3>
                 <button
-                  onClick={() => handleDelete(v.id)}
+                  onClick={() => setPendingDeleteId(v.id)}
                   className="btn-icon-danger"
                   title="Sil"
                 >
@@ -146,6 +155,21 @@ export default function Dashboard() {
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        open={Boolean(pendingDeleteId)}
+        title="Değerlemeyi sil"
+        message={
+          pendingDelete
+            ? `${pendingDelete.brand} ${pendingDelete.model} (${pendingDelete.year}) değerlemesi kalıcı olarak silinecek. Bu işlem geri alınamaz.`
+            : ""
+        }
+        confirmLabel="Sil"
+        cancelLabel="Vazgeç"
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => !deleting && setPendingDeleteId(null)}
+      />
     </div>
   );
 }
