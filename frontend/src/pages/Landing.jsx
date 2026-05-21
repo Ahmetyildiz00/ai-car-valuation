@@ -97,7 +97,7 @@ export default function Landing() {
               <span className="hero-stat-label">Ortalama analiz süresi</span>
             </div>
             <div className="hero-stat">
-              <span className="hero-stat-num">/%94</span>
+              <span className="hero-stat-num">/%95</span>
               <span className="hero-stat-label">Fiyat tahmin doğruluğu</span>
             </div>
           </div>
